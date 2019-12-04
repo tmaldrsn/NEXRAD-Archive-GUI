@@ -1,4 +1,9 @@
-from util import datetime_from_julian, time_from_milliseconds, scale
+from util import (
+    datetime_from_julian, 
+    time_from_milliseconds, 
+    time_from_minutes,
+    scale
+)
 
 # Document 2620010G - Section 7.3.3 (pg. 13)
 VOLUME_HEADER = (
@@ -82,9 +87,9 @@ TYPE2 = (
     ('Channel Control Status', 'H', None, None),
     ('Spot Blanking Status', 'H', None, None),
     ('Bypass Map Generation Date', 'H', None, datetime_from_julian),
-    ('Bypass Map Generation Time', 'H', None, None), # create time_from_minutes function
+    ('Bypass Map Generation Time', 'H', None, time_from_minutes),
     ('Clutter Filter Map Generation Date', 'H', None, datetime_from_julian),
-    ('Clutter Filter Map Generation Time', 'H', None, None), # create time_from_minutes function
+    ('Clutter Filter Map Generation Time', 'H', None, time_from_minutes),
     ('Vertical Reflectivity Calibration Correction', 'H', 'dB', scale(0.01)),
     ('Transition Power Source Status', 'H', None, None),
     ('RMS Control Status', 'H', None, None),
@@ -399,6 +404,7 @@ TYPE3 = (
 #########################################
 # TYPE 5 - VOLUME COVERAGE PATTERN DATA #
 #########################################
+# Document 2620002R - Section 3.2.4.12 Table XI (pgs. 3-52 to 3-56)
 TYPE5_HEAD = (
     ('Message Size', 'H', 'halfwords', None),
     ('Pattern Type', 'H', None, None),
@@ -448,7 +454,7 @@ TYPE5_ELEV = (
 # Document 262000R - Section 3.2.4.10 Table IX (pgs. 3-48 to 3-49)
 TYPE13_HEAD = (
     ('Bypass Map Generation Date', 'H', None, datetime_from_julian),
-    ('Bypass Map Generation Time', 'H', None, None), # time from minutes
+    ('Bypass Map Generation Time', 'H', None, time_from_minutes),
     ('Number of Segments', 'H', None, None)
 )
 
@@ -463,7 +469,7 @@ def build_type13_segment(buffer):
 # Document 2620002R - Section 3.2.4.15 Table XIV (pgs. 3-59 to 3-60)
 TYPE15_HEAD = (
     ('Map Generation Date', 'H', None, datetime_from_julian),
-    ('Map Generation Time', 'H', None, None), # time from minutes
+    ('Map Generation Time', 'H', None, time_from_minutes),
     ('Number of Elevation Segments', 'H', None, None),
 )
 
