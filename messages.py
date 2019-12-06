@@ -405,7 +405,7 @@ TYPE3 = (
 # TYPE 5 - VOLUME COVERAGE PATTERN DATA #
 #########################################
 # Document 2620002R - Section 3.2.4.12 Table XI (pgs. 3-52 to 3-56)
-TYPE5_HEAD = (
+TYPE5 = (
     ('Message Size', 'H', 'halfwords', None),
     ('Pattern Type', 'H', None, None),
     ('Pattern Number', 'H', None, None),
@@ -417,10 +417,7 @@ TYPE5_HEAD = (
     (None, 'xx', None, None),
     ('VCP Sequencing', 'H', None, None), # see note 15
     ('VCP Supplemental Data', 'H', None, None), # see note 15
-    (None, 'xxxx', None, None)
-)
-
-TYPE5_ELEV = (
+    (None, 'xxxx', None, None),
     ('Elevation Angle', 'H', 'deg', None), # convert to angle (note 6)
     ('Channel Configuration', 'B', None, None),
     ('Waveform Type', 'B', None, None),

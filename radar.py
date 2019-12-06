@@ -26,8 +26,15 @@ class Volume:
         data = decompress(raw)
         self.data = data
 
-        self.METADATA = data[:325888]
-        # self.parse_metadata()
+        # Metadata split according to 2620010G Section 7.3.5 (pg. 7-3)
+        #self.METADATA = data[:325888]
+        self.TYPE15 = TYPE15(data[:2432*77])
+        self.TYPE13 = TYPE13(data[2432*77:2432*126])
+        self.TYPE18 = TYPE18(data[2432*126:2432*131])
+        self.TYPE3 = TYPE3(data[2432*131:2432*132])
+        self.TYPE5 = TYPE5(data[2432*132:2432*133])
+        self.TYPE2 = TYPE2(data[2432*133:2432*134])
+        
         self.STATUS_MESSAGES = []
         self.RADAR_DATA = []
 
@@ -85,11 +92,60 @@ class MessageHeader:
 class Message:
     def __init__(self, buffer):
         assert buffer[:12] == bytes(12)
-        self.header = MessageHeader(buffer[12:28], self)
+        self.header = MessageHeader(buffer[12:28], self) # message size includes header
         self.data = buffer[28:]
 
     def __len__(self):
-        return self.header.data["Message Size"]*2
+        return self.header.data["Message Size"]*2-16
+
+
+class ExtendedMessage:
+    def __init__(self, buffer):
+        self.headers = []
+        self.buffer = b''
+
+        pointer = 0
+        while True:
+            if pointer >= len(buffer) or buffer[pointer+12:pointer+28] == bytes(16):
+                #self.buffer = self.buffer.rstrip(b'\x00')
+                break
+            message = Message(buffer[pointer:pointer+2432])
+            self.headers.append(message.header)
+            self.buffer += message.data
+            pointer += 2432
+
+    def __len__(self):
+        return sum([h.data["Message Size"]*2-16 for h in self.headers])
+
+class TYPE2(Message):
+    def __init__(self, buffer):
+        Message.__init__(self, buffer)
+        
+
+class TYPE3(Message):
+    def __init__(self, buffer):
+        Message.__init__(self, buffer)
+
+
+class TYPE5(Message):
+    def __init__(self, buffer):
+        Message.__init__(self, buffer)
+
+
+class TYPE13(ExtendedMessage):
+    def __init__(self, buffer):
+        ExtendedMessage.__init__(self, buffer)
+
+
+class TYPE15(ExtendedMessage):
+    def __init__(self, buffer):
+        ExtendedMessage.__init__(self, buffer)
+
+
+class TYPE18(ExtendedMessage):
+    def __init__(self, buffer):
+        ExtendedMessage.__init__(self, buffer)
+
 
 
 class TYPE31(Message):
@@ -172,6 +228,7 @@ class TYPE31(Message):
         }
         return [mess for mess in messages.keys() if messages[mess]]
 
+# debug purposes
 if __name__=='__main__':
-    vol = Volume('raw/KFDX20190712_051611_V06')
+    vol = Volume('raw/KFDX20190712_042038_V06')
     fig = vol.elevation_data()
