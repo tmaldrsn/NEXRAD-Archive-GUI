@@ -28,18 +28,18 @@ class MenuBar(tk.Menu):
         self.fileMenu.add_command(label="Exit", underline=1, command=self.quit)
 
         # Messages Menu - for each message, pop up data table containing pertinant info
-        self.messagesMenu = tk.Menu(self, tearoff=False)
-        self.add_cascade(label="Messages", menu=self.messagesMenu, state=tk.DISABLED)
+        self.metadataMenu = tk.Menu(self, tearoff=False)
+        self.add_cascade(label="Metadata", menu=self.metadataMenu, state=tk.DISABLED)
 
-        self.messagesMenu.add_command(label="Type 15: Clutter Filter Map", command=lambda mess='TYPE15': DataWindow(self, mess))
-        self.messagesMenu.add_command(label="Type 13: Clutter Filter Bypass Map", command=lambda mess='TYPE13': DataWindow(self, mess))
-        self.messagesMenu.add_command(label="Type 18: RDA Adaptation Data", command=lambda mess='TYPE18': DataWindow(self, mess))
-        self.messagesMenu.add_command(label="Type 3: Performance / Maintenance Data", command=lambda mess='TYPE3': DataWindow(self, mess))
-        self.messagesMenu.add_command(label="Type 5: Volume Coverage Pattern Data", command=lambda mess='TYPE5': DataWindow(self, mess))
-        self.messagesMenu.add_command(label="Type 2: RDA Status Data", command=lambda mess='TYPE2': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 15: Clutter Filter Map", command=lambda mess='TYPE15': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 13: Clutter Filter Bypass Map", command=lambda mess='TYPE13': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 18: RDA Adaptation Data", command=lambda mess='TYPE18': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 3: Performance / Maintenance Data", command=lambda mess='TYPE3': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 5: Volume Coverage Pattern Data", command=lambda mess='TYPE5': DataWindow(self, mess))
+        self.metadataMenu.add_command(label="Type 2: RDA Status Data", command=lambda mess='TYPE2': DataWindow(self, mess))
 
-        self.messagesMenu.add_separator()
-        self.messagesMenu.add_command(label="Type 31: Digital Radar Generic Format Blocks")
+        #self.metadataMenu.add_separator()
+        #self.metadataMenu.add_command(label="Type 31: Digital Radar Generic Format Blocks")
         
         # Help Menu - open browser to NOAA NEXRAD page or local documentation pdfs
         self.helpMenu = tk.Menu(self, tearoff=False)
@@ -52,7 +52,7 @@ class MenuBar(tk.Menu):
         self.parent.IS_FILE_LOADED = True
         self.parent.LOADED_FILE = rep
         self.parent.LOADED_VOLUME = vol
-        self.entryconfigure("Messages", state=tk.NORMAL)
+        self.entryconfigure("Metadata", state=tk.NORMAL)
         self.parent.update_labels()
         self.parent.optionsframe.update_options_layout()
         self.parent.radarframe.update_plot()
@@ -244,20 +244,38 @@ class RadarApplication(tk.Tk):
 
 class DataWindow(tk.Toplevel):
     def __init__(self, parent, message, *args, **kwargs):
-        tk.Toplevel.__init__(self, parent)
+        tk.Toplevel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-        self.var_col = VarNameColumn(self, message)
-        self.val_col = DataValueColumn(self, message)
+        self.var_col = VarNameColumn(self, message, yscrollcommand=self.yscroll1)
+        self.val_col = DataValueColumn(self, message, yscrollcommand=self.yscroll2)
 
-        self.var_col.grid(row=0, column=0)
-        self.val_col.grid(row=0, column=1)
+        self.var_col.grid(row=0, column=1)
+        self.val_col.grid(row=0, column=2)
+
+        self.scrollbar = tk.Scrollbar(self, orient="vertical", command=self.yview)
+        self.scrollbar.grid(row=0, column=0, sticky=tk.NS)
+    
+    def yscroll1(self, *args):
+        if self.val_col.yview() != self.var_col.yview():
+            self.val_col.yview_moveto(args[0])
+        self.scrollbar.set(*args)
+
+    def yscroll2(self, *args):
+        if self.var_col.yview() != self.val_col.yview():
+            self.var_col.yview_moveto(args[0])
+        self.scrollbar.set(*args)
+
+    def yview(self, *args):
+        self.var_col.yview(*args)
+        self.val_col.yview(*args)
+
 
 class VarNameColumn(tk.Listbox):
-    def __init__(self, parent, message):
+    def __init__(self, parent, message, *args, **kwargs):
         self.parent = parent
         self.labels = eval(f"self.parent.parent.parent.LOADED_VOLUME.{message}.unpacked_data.keys()")
         self.labels_var = tk.StringVar(value=tuple(self.labels))
-        tk.Listbox.__init__(self, parent, listvariable=self.labels_var)
+        tk.Listbox.__init__(self, parent, listvariable=self.labels_var, *args, **kwargs)
 
         self.config(width=max([len(i) for i in self.labels]))
         for i in range(0, len(self.labels), 2):
@@ -265,11 +283,11 @@ class VarNameColumn(tk.Listbox):
 
 
 class DataValueColumn(tk.Listbox):
-    def __init__(self, parent, message):
+    def __init__(self, parent, message, *args, **kwargs):
         self.parent = parent
         self.values = eval(f"self.parent.parent.parent.LOADED_VOLUME.{message}.unpacked_data.values()")
         self.values_var = tk.StringVar(value=tuple(self.values))
-        tk.Listbox.__init__(self, parent, listvariable=self.values_var)
+        tk.Listbox.__init__(self, parent, listvariable=self.values_var, *args, **kwargs)
 
         self.config(width=max([len(str(i)) for i in self.values]))
         for i in range(0, len(self.values), 2):
