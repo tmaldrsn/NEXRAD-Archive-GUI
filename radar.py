@@ -3,18 +3,8 @@ import struct
 import numpy as np
 from matplotlib import pyplot as plt
 
-from util import unpack, decompress
-from messages import (
-    VOLUME_HEADER,
-    MESSAGE_HEADER,
-    TYPE31_HEADER,
-    TYPE31_RVOL,
-    TYPE31_RELV,
-    TYPE31_RRAD,
-    TYPE31_DATA
-)
-
-
+from util import unpack, decompress, meta_unpack
+import messages
 
 
 class Volume:
@@ -22,12 +12,12 @@ class Volume:
         with open(filename, 'rb') as f:
             raw = f.read()
         
-        self.HEADER = unpack(raw[:24], VOLUME_HEADER)
+        self.HEADER = unpack(raw[:24], messages.VOLUME_HEADER)
         data = decompress(raw)
-        self.data = data
+        #self.data = data
 
         # Metadata split according to 2620010G Section 7.3.5 (pg. 7-3)
-        #self.METADATA = data[:325888]
+        # self.METADATA = data[:325888]
         self.TYPE15 = TYPE15(data[:2432*77])
         self.TYPE13 = TYPE13(data[2432*77:2432*126])
         self.TYPE18 = TYPE18(data[2432*126:2432*131])
@@ -86,7 +76,7 @@ class Volume:
 class MessageHeader:
     def __init__(self, buffer, parentMessage=None):
         self.parentMessage = parentMessage
-        self.data = unpack(buffer, MESSAGE_HEADER)
+        self.data = unpack(buffer, messages.MESSAGE_HEADER)
 
 
 class Message:
@@ -120,42 +110,51 @@ class ExtendedMessage:
 class TYPE2(Message):
     def __init__(self, buffer):
         Message.__init__(self, buffer)
+        self.unpacked_data = meta_unpack(self.data[:len(self)-40-28], messages.TYPE2)
+        delattr(self, 'data')
         
 
 class TYPE3(Message):
     def __init__(self, buffer):
         Message.__init__(self, buffer)
-
+        self.unpacked_data = meta_unpack(self.data[:958], messages.TYPE3)
+        delattr(self, 'data')
 
 class TYPE5(Message):
     def __init__(self, buffer):
         Message.__init__(self, buffer)
-
+        self.unpacked_data = meta_unpack(self.data[:67], messages.TYPE5)
+        delattr(self, 'data')
 
 class TYPE13(ExtendedMessage):
     def __init__(self, buffer):
         ExtendedMessage.__init__(self, buffer)
+        self.unpacked_data = meta_unpack(self.buffer[:6], messages.TYPE13_HEAD)
+        delattr(self, 'buffer')
 
 
 class TYPE15(ExtendedMessage):
     def __init__(self, buffer):
         ExtendedMessage.__init__(self, buffer)
+        self.unpacked_data = meta_unpack(self.buffer[:6], messages.TYPE15_HEAD)
+        delattr(self, 'buffer')
 
 
 class TYPE18(ExtendedMessage):
     def __init__(self, buffer):
         ExtendedMessage.__init__(self, buffer)
-
+        self.unpacked_data = meta_unpack(self.buffer[:len(self)], messages.TYPE18)
+        delattr(self, 'buffer')
 
 
 class TYPE31(Message):
     def __init__(self, buffer):
         Message.__init__(self, buffer)
         
-        #self.DATA_HEADER = unpack(self.data[:68], TYPE31_HEADER)
-        #self.RVOL = unpack(self.data[68:68+44], TYPE31_RVOL)
-        #self.RELV = unpack(self.data[112:112+12], TYPE31_RELV)
-        #self.RRAD = unpack(self.data[124:124+28], TYPE31_RRAD)
+        #self.DATA_HEADER = unpack(self.data[:68], messages.TYPE31_HEADER)
+        #self.RVOL = unpack(self.data[68:68+44], messages.TYPE31_RVOL)
+        #self.RELV = unpack(self.data[112:112+12], messages.TYPE31_RELV)
+        #self.RRAD = unpack(self.data[124:124+28], messages.TYPE31_RRAD)
 
         self.DREF = self.get_data_block('DREF')
         self.DVEL = self.get_data_block('DVEL')
@@ -164,8 +163,8 @@ class TYPE31(Message):
         self.DPHI = self.get_data_block('DPHI')
         self.DRHO = self.get_data_block('DRHO')
 
-        DATA_HEADER = unpack(self.data[:68], TYPE31_HEADER)
-        RVOL = unpack(self.data[68:68+44], TYPE31_RVOL)
+        DATA_HEADER = unpack(self.data[:68], messages.TYPE31_HEADER)
+        RVOL = unpack(self.data[68:68+44], messages.TYPE31_RVOL)
         #RELV = unpack(self.data[112:112+12], TYPE31_RELV)
 
         self._elevation = DATA_HEADER['Elevation Number']
@@ -179,7 +178,7 @@ class TYPE31(Message):
         if data_loc == -1:
             return
         
-        data_info = unpack(self.data[data_loc:data_loc+28], TYPE31_DATA)
+        data_info = unpack(self.data[data_loc:data_loc+28], messages.TYPE31_DATA)
         data_moment = data_info['Data Block Type'] + data_info['Data Moment Name'] 
         word_size = data_info['Data Word Size'] // 8
         data_len = data_info['Number of Data Moment Gates']

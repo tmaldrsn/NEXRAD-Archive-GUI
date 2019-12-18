@@ -94,8 +94,8 @@ TYPE2 = (
     ('Transition Power Source Status', 'H', None, None),
     ('RMS Control Status', 'H', None, None),
     ('Performance Check Status', 'H', None, None),
-    ('Alarm Codes', 'H'*14, None, None),
-    (None, 'xx'*20, None, None)
+    #('Alarm Codes', 'H'*14, None, None),
+    #(None, 'xx'*20, None, None)
 )
 
 
@@ -691,7 +691,7 @@ TYPE18 = (
     ('PATH_LOSSES(68)', 'f', 'dB', None),
     (None, 'xxxx', None, None),
     ('CHAN_CAL_DIFF', 'f', 'dB', None),
-    ('PATH_LOSSES(70-71)', 'xxxx', None, None),
+    ('PATH_LOSSES(70-71)', 'f', None, None),
     (None, 'xxxx', None, None),
     (None, 'xxxx', None, None),
     ('V_TS_CW', 'f', 'dBm', None),
@@ -797,7 +797,8 @@ TYPE18 = (
     (None, 'x'*1172, None, None),
     (None, 'x'*1172, None, None),
     (None, 'x'*1172, None, None),
-    (None, 'x'*1172, None, None),   
+    (None, 'x'*1172, None, None),
+    (None, 'x'*12, None, None), # for some reason this is necessary for alignment   
     ('AZ_CORRECTION_FACTOR', 'f', 'deg', None),
     ('EL_CORRECTION_FACTOR', 'f', 'deg', None),
     ('SITE_NAME', '4s', None, bytes.decode),

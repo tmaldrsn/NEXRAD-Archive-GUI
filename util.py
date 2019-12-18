@@ -21,7 +21,7 @@ def time_from_minutes(minutes):
 def scale(factor):
     return lambda x: x*factor
 
-"""
+
 # 2620002R Table III-A, pg. 3-11
 def angle_data(b):
     value = 0.001 * struct.unpack('>H', b)[0]
@@ -29,16 +29,37 @@ def angle_data(b):
         return -round(value - 0.001 * 2**15, 3)
     return value
 
-# 2620002R Table III-B, pg. 3-11/12
+# 2620002R Table III-B, pg. 3-11 to 3-12
 def range_data(n):
     for char in reversed(format(n, '016b')):
         pass
-"""
+
+
+def meta_unpack(buffer, fmt):
+    info = struct.unpack('>' + ''.join([item[1] for item in fmt]), buffer)
+    info_dict = {}
+    offset = 0
+    for i in range(len(fmt)):
+        key = fmt[i][0]
+        if not key:
+            offset += 1
+            continue
+        if fmt[i][3] is not None:
+            try:
+                info_dict[key] = fmt[i][3](info[i-offset])
+            except TypeError:
+                print(fmt[i])
+                print(info[i-offset])
+        else:
+            info_dict[key] = info[i-offset]
+
+    return info_dict
+
 
 def unpack(buffer, fmt):
     info = struct.unpack('>'+''.join([item[1] for item in fmt]), buffer)
     info_dict = {}
-    for i in range(len(info)):
+    for i in range(len(fmt)):
         key = fmt[i][0]
         if not key:
             continue
@@ -47,7 +68,6 @@ def unpack(buffer, fmt):
         else:
             info_dict[key] = fmt[i][3](info[i])
     return info_dict
-
 
 def decompress(buffer):
     pointer = 24
