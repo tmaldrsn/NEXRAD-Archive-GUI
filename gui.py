@@ -9,7 +9,9 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 
 import radar
+import messages
 import colors
+import util
 
 ##### MENU BAR #####
 
@@ -19,28 +21,30 @@ class MenuBar(tk.Menu):
         self.parent = parent
 
         # File Menu
-        fileMenu = tk.Menu(self, tearoff=False)
-        self.add_cascade(label="File", underline=0, menu=fileMenu)
-        fileMenu.add_command(label="Load File", underline=0, command=self.load_file)
-        fileMenu.add_separator()
-        fileMenu.add_command(label="Exit", underline=1, command=self.quit)
+        self.fileMenu = tk.Menu(self, tearoff=False)
+        self.add_cascade(label="File", underline=0, menu=self.fileMenu)
+        self.fileMenu.add_command(label="Load File", underline=0, command=self.load_file)
+        self.fileMenu.add_separator()
+        self.fileMenu.add_command(label="Exit", underline=1, command=self.quit)
 
         # Messages Menu - for each message, pop up data table containing pertinant info
-        messagesMenu = tk.Menu(self, tearoff=False)
-        self.add_cascade(label="Messages", menu=messagesMenu)
-        messagesMenu.add_command(label="Type 15: Clutter Filter Map")
-        messagesMenu.add_command(label="Type 13: Clutter Filter Bypass Map")
-        messagesMenu.add_command(label="Type 18: RDA Adaptation Data")
-        messagesMenu.add_command(label="Type 3: Performance / Maintenance Data")
-        messagesMenu.add_command(label="Type 5: Volume Coverage Pattern Data")
-        messagesMenu.add_command(label="Type 2: RDA Status Data")
-        messagesMenu.add_separator()
-        messagesMenu.add_command(label="Type 31: Digital Radar Generic Format Blocks")
+        self.messagesMenu = tk.Menu(self, tearoff=False)
+        self.add_cascade(label="Messages", menu=self.messagesMenu, state=tk.DISABLED)
 
+        self.messagesMenu.add_command(label="Type 15: Clutter Filter Map", command=lambda mess='TYPE15': DataWindow(self, mess))
+        self.messagesMenu.add_command(label="Type 13: Clutter Filter Bypass Map", command=lambda mess='TYPE13': DataWindow(self, mess))
+        self.messagesMenu.add_command(label="Type 18: RDA Adaptation Data", command=lambda mess='TYPE18': DataWindow(self, mess))
+        self.messagesMenu.add_command(label="Type 3: Performance / Maintenance Data", command=lambda mess='TYPE3': DataWindow(self, mess))
+        self.messagesMenu.add_command(label="Type 5: Volume Coverage Pattern Data", command=lambda mess='TYPE5': DataWindow(self, mess))
+        self.messagesMenu.add_command(label="Type 2: RDA Status Data", command=lambda mess='TYPE2': DataWindow(self, mess))
+
+        self.messagesMenu.add_separator()
+        self.messagesMenu.add_command(label="Type 31: Digital Radar Generic Format Blocks")
+        
         # Help Menu - open browser to NOAA NEXRAD page or local documentation pdfs
-        helpMenu = tk.Menu(self, tearoff=False)
-        self.add_cascade(label="Help", underline=0, menu=helpMenu)
-        helpMenu.add_command(label="NEXRAD Documentation")
+        self.helpMenu = tk.Menu(self, tearoff=False)
+        self.add_cascade(label="Help", underline=0, menu=self.helpMenu)
+        self.helpMenu.add_command(label="NEXRAD Documentation")
 
     def load_file(self):
         rep = filedialog.askopenfilenames(parent=self, initialdir='raw/')[0]
@@ -48,6 +52,7 @@ class MenuBar(tk.Menu):
         self.parent.IS_FILE_LOADED = True
         self.parent.LOADED_FILE = rep
         self.parent.LOADED_VOLUME = vol
+        self.entryconfigure("Messages", state=tk.NORMAL)
         self.parent.update_labels()
         self.parent.optionsframe.update_options_layout()
         self.parent.radarframe.update_plot()
@@ -216,8 +221,8 @@ class RadarApplication(tk.Tk):
         self.config(height=600, width=800)
         self.title("Radar Viewer!")
 
-        menubar = MenuBar(self)
-        self.config(menu=menubar)
+        self.menubar = MenuBar(self)
+        self.config(menu=self.menubar)
 
         # configure main layout
         self.radarframe = RadarFrame(self)
@@ -233,6 +238,43 @@ class RadarApplication(tk.Tk):
         self.infobar.date_var.set(self.LOADED_VOLUME.HEADER["Date"])
         self.infobar.time_var.set(self.LOADED_VOLUME.HEADER["Time"])
         self.infobar.station_var.set(self.LOADED_VOLUME.HEADER["ICAO"])
+
+
+##### METADATA WINDOW #####
+
+class DataWindow(tk.Toplevel):
+    def __init__(self, parent, message, *args, **kwargs):
+        tk.Toplevel.__init__(self, parent)
+        self.parent = parent
+        self.var_col = VarNameColumn(self, message)
+        self.val_col = DataValueColumn(self, message)
+
+        self.var_col.grid(row=0, column=0)
+        self.val_col.grid(row=0, column=1)
+
+class VarNameColumn(tk.Listbox):
+    def __init__(self, parent, message):
+        self.parent = parent
+        self.labels = eval(f"self.parent.parent.parent.LOADED_VOLUME.{message}.unpacked_data.keys()")
+        self.labels_var = tk.StringVar(value=tuple(self.labels))
+        tk.Listbox.__init__(self, parent, listvariable=self.labels_var)
+
+        self.config(width=max([len(i) for i in self.labels]))
+        for i in range(0, len(self.labels), 2):
+            self.itemconfigure(i, background='#f0f0ff')
+
+
+class DataValueColumn(tk.Listbox):
+    def __init__(self, parent, message):
+        self.parent = parent
+        self.values = eval(f"self.parent.parent.parent.LOADED_VOLUME.{message}.unpacked_data.values()")
+        self.values_var = tk.StringVar(value=tuple(self.values))
+        tk.Listbox.__init__(self, parent, listvariable=self.values_var)
+
+        self.config(width=max([len(str(i)) for i in self.values]))
+        for i in range(0, len(self.values), 2):
+            self.itemconfigure(i, background='#f0f0ff')
+
 
 
 if __name__=='__main__':
