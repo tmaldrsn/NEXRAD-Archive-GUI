@@ -24,16 +24,14 @@ def scale(factor):
 
 # 2620002R Table III-A, pg. 3-11
 def angle_data(b):
-    value = 0.001 * struct.unpack('>H', b)[0]
-    if value > 32.767:
-        return -round(value - 0.001 * 2**15, 3)
-    return value
+    bits = format(int(b.hex(), 16), '016b')
+    return sum([180/2**i for i, bit in enumerate(bits[:-3]) if int(bit)])
 
 # 2620002R Table III-B, pg. 3-11 to 3-12
-def range_data(n):
-    for char in reversed(format(n, '016b')):
-        pass
-
+def range_data(b):
+    bits = format(int(b.hex(), 16), '016b')
+    sign = (-1) ** int(bits[0])
+    return sign * sum([16.384 / 2**i for i, bit in enumerate(bits[1:]) if int(bit)])
 
 def meta_unpack(buffer, fmt):
     info = struct.unpack('>' + ''.join([item[1] for item in fmt]), buffer)
